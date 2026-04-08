@@ -1,0 +1,2 @@
+dist/video_converter.exe filter=lfs diff=lfs merge=lfs -text
+dist/main_video_zone_extractor.exe filter=lfs diff=lfs merge=lfs -text
