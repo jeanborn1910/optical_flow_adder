@@ -30,7 +30,7 @@ Takes the ```.mp4 for optical flow``` file optimized for optical flow and comput
 
 ## Get started
 ### 1st case : You want to use the standalone softwares (.exe files)
-Just download the three ```.exe``` files in the dist folder. Nothing else to install, you are good to go. 
+Just download the three ```.exe``` files in the release section and you are good to go !
 
 ### 2nd case : You want to reuse the code 
 Follow these steps : 
