@@ -1,8 +1,8 @@
 # Jean-Eudes BORNERT - LTSI - 25/03/2026
-# Objectif    : Back end pour la conversion des vidéos en mkv ou avi, et assemblage
+# Objectif    : Back end pour la conversion des vidéos en mp4 standard ou mp4 pour of, et assemblage
 # Fonction    : Code de base permettant de traiter les vidéos
 # Entrée      : fichiers vidéos (.avi, .mp4, etc.)
-# Sortie      : vidéos traitées selon le besoin (assemblées, mkv, optical flow)
+# Sortie      : vidéos traitées selon le besoin (assemblées, mp4 standard, mp4 optical flow)
 
 # --------------------------------------
 # Imports
@@ -21,6 +21,27 @@ def obtenir_chemin_ressource(chemin_relatif, sub_folder=""):
     if sub_folder:
         return os.path.join(os.path.abspath("."), sub_folder, chemin_relatif)
     return os.path.join(os.path.abspath("."), chemin_relatif)
+
+# --------------------------------------
+# Dates os
+# --------------------------------------
+def modifier_dates_os(chemin_fichier, date_iso):
+    if not date_iso:
+        return
+        
+    try:
+        date_str = date_iso.replace('T', ' ').split('.')[0]
+        dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+        timestamp = dt.timestamp()
+        
+        os.utime(chemin_fichier, (timestamp, timestamp))
+        
+        chemin_propre = os.path.abspath(chemin_fichier).replace("'", "''")
+        commande = f'powershell -Command "(Get-Item \'{chemin_propre}\').CreationTime = \'{date_str}\'"'
+        os.system(commande)
+        
+    except Exception as e:
+        print(f"Information : Impossible de modifier les dates de l'OS : {e}")
 
 # --------------------------------------
 # Fonctions pour l'assemblage et continuité
@@ -134,35 +155,53 @@ def assembler_videos(fichiers_entree, fichier_sortie, log, set_progress, toleran
 # --------------------------------------
 # Fonction pour optical flow
 # --------------------------------------
-def convert_for_optical_flow(input_path, output_path, log, set_progress, largeur_cible=320):
+def convert_for_optical_flow(input_path, output_path, date_heure_debut, log, set_progress, largeur_cible=320):
     log("(la barre de chargement n'évoluera pas, voir les informations du terminal)")
     chemin_ffmpeg = obtenir_chemin_ressource("ffmpeg.exe", "ffmpeg")
     
     set_progress(50) 
     
+    output_kwargs = {
+        'vf': f'scale={largeur_cible}:-2',
+        'vcodec': 'libx264',
+        'preset': 'ultrafast',
+        'tune': 'fastdecode',
+        'pix_fmt': 'gray',
+        'crf': 23,
+        'g': 25,
+        'keyint_min': 25
+    }
+    
+    if date_heure_debut:
+        log(f"Injection de la date dans le flot optique : {date_heure_debut.replace('T', ' ')}")
+        output_kwargs['metadata'] = f'creation_time={date_heure_debut}'
+    
     try:
         (
             ffmpeg
             .input(input_path)
-            .output(output_path, vf=f'scale={largeur_cible}:-2,format=gray', vcodec='mpeg4', vtag='xvid')
+            .output(output_path, **output_kwargs)
             .run(cmd=chemin_ffmpeg, overwrite_output=True)
         )
+
+        modifier_dates_os(output_path, date_heure_debut)    
+
         set_progress(100)
         log(f"Fichier sauvegardé : {os.path.basename(output_path)}")
         
     except ffmpeg.Error as e:
         set_progress(0)
         erreur = e.stderr.decode('utf8') if e.stderr else 'Erreur'
-        raise ValueError(f"Erreur lors de la création de la vidéo Optical Flow : {erreur}")
+        raise ValueError(f"Erreur lors de la création de la vidéo de flot optique : {erreur}")
 
 # --------------------------------------
-# Fonction pour fichiers en mkv
+# Fonction pour fichiers en mp4
 # --------------------------------------
-def convert_mpeg_to_mkv(input_file, output_file_name, date_heure_debut, log, set_progress):
+def convert_mpeg_to_mp4(input_file, output_file_name, date_heure_debut, log, set_progress):
     path = os.path.dirname(input_file)
     
-    if not output_file_name.lower().endswith('.mkv'):
-        output_file_name += ".mkv"
+    if not output_file_name.lower().endswith('.mp4'):
+        output_file_name += ".mp4"
     
     full_output_path = os.path.normpath(os.path.join(path, output_file_name))
     chemin_ffmpeg = obtenir_chemin_ressource("ffmpeg.exe", "ffmpeg")
@@ -172,17 +211,32 @@ def convert_mpeg_to_mkv(input_file, output_file_name, date_heure_debut, log, set
     log("(la barre de chargement n'évoluera pas, voir les informations du terminal)")
     
     try:
-        output_kwargs = {'vcodec': 'libx264', 'an': None, 'fflags': '+genpts'}
+        # Paramètres pour une vidéo fluide, rapide à lire, et IGNORANT les erreurs MPEG
+        output_kwargs = {
+            'vcodec': 'libx264',
+            'preset': 'fast',
+            'crf': 23,
+            'g': 25,
+            'keyint_min': 25,
+            'an': None,           # Supprime la piste audio corrompue
+            'fflags': '+genpts'   # <-- BOUCLIER 1 : Régénère les timestamps (DTS out of order)
+        }
+        
         if date_heure_debut != "":
-            log(f"Injection de la date : {date_heure_debut}")
+            log(f"Injection de la date : {date_heure_debut.replace('T', ' ')}")
             output_kwargs['metadata'] = f'creation_time={date_heure_debut}'
 
         (
             ffmpeg
-            .input(input_file)
+            # <-- BOUCLIER 2 : Ignore les erreurs de lecture (headers mp2 manquants) dès l'entrée
+            .input(input_file, err_detect='ignore_err') 
             .output(full_output_path, **output_kwargs)
             .run(cmd=chemin_ffmpeg, overwrite_output=True)
         )
+        
+        # Mise à jour des dates Windows
+        modifier_dates_os(full_output_path, date_heure_debut)
+        
         set_progress(100)
     
     except ffmpeg.Error as e:

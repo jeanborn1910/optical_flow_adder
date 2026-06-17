@@ -33,13 +33,12 @@ def process_video(input_video_path, coords, on_complete=None):
     height = y_max - y_min
     
     video_dir = os.path.dirname(input_video_path)
-    
     base_name = os.path.splitext(os.path.basename(input_video_path))[0]
     
     timestamp = os.path.getmtime(input_video_path)
     date_heure = datetime.datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d_%H-%M-%S")
     
-    output_name = f"{base_name}_{date_heure}_zone.avi"
+    output_name = f"{base_name}_{date_heure}_zone.mp4"
     output_video_path = os.path.join(video_dir, output_name)
 
     proc_window = tk.Toplevel()
@@ -52,9 +51,7 @@ def process_video(input_video_path, coords, on_complete=None):
     status_label = tk.Label(proc_window, text="Traitement en cours avec FFmpeg...\nVeuillez patienter. \n(Pour voir l'évolution, regarder les informations du terminal)", pady=20)
     status_label.pack(expand=True)
     
-
     proc_window.update()
-    
     
     def fermer_et_reset():
         if on_complete:
@@ -66,7 +63,18 @@ def process_video(input_video_path, coords, on_complete=None):
         stream = ffmpeg.crop(stream, x_min, y_min, width, height)
         stream = ffmpeg.filter(stream, 'scale', scale_max, -1)
         stream = ffmpeg.filter(stream, 'format', 'gray')
-        stream = ffmpeg.output(stream, output_video_path, an=None)
+        
+        output_kwargs = {
+            'vcodec': 'libx264',
+            'preset': 'ultrafast',
+            'tune': 'fastdecode',
+            'crf': 23,
+            'g': 25,
+            'keyint_min': 25,
+            'an': None
+        }
+        
+        stream = ffmpeg.output(stream, output_video_path, **output_kwargs)
         ffmpeg.run(stream, cmd=chemin_ffmpeg, overwrite_output=True)
         
         status_label.config(text=f"Traitement terminé. \nSauvegardé sous :\n{os.path.basename(output_video_path)}")
@@ -79,7 +87,6 @@ def process_video(input_video_path, coords, on_complete=None):
     except FileNotFoundError:
         status_label.config(text="FFmpeg introuvable.", fg="red")
         messagebox.showerror("Erreur", f"L'exécutable est absent ici :\n{chemin_ffmpeg}", parent=proc_window)
-    
     
     close_btn = tk.Button(proc_window, text="Terminer et quitter", command=fermer_et_reset)
     close_btn.pack(pady=10)

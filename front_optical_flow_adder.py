@@ -32,7 +32,7 @@ def browse_edf():
     if file_path: edf_var.set(file_path)
 
 def browse_video():
-    file_path = filedialog.askopenfilename(title="Choisir un fichier vidéo", filetypes=[("Video files", "*.avi")])
+    file_path = filedialog.askopenfilename(title="Choisir un fichier vidéo", filetypes=[("Video files", "*.mp4")])
     if file_path: video_var.set(file_path)
 
 def _update_log(message):
@@ -71,7 +71,7 @@ def submit():
     video_path = video_var.get()
     output_name = output_var.get()
     
-    formats_video = [".avi"]
+    formats_video = [".mp4"]
 
     if not edf_path:
         messagebox.showerror("Erreur", "Vous devez fournir un fichier .edf")
@@ -98,7 +98,7 @@ def submit():
             messagebox.showerror("Erreur", "Le chemin d'accès à la vidéo est invalide")
             return
         elif Path(video_path).suffix.lower() not in formats_video:
-            messagebox.showerror("Erreur", "Le fichier vidéo DOIT être au format .avi")
+            messagebox.showerror("Erreur", "Le fichier vidéo DOIT être au format .mp4")
             return
 
     edf_path = Path(edf_path)
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     row_ind+=1
     warning_label = tk.Label(root, 
-        text="ATTENTION : la vidéo doit être optimisée en amont :\n- Format : .avi\n- Noir et Blanc\n- Largeur maximale de 320 pixels", 
+        text="ATTENTION : la vidéo doit être optimisée en amont :\n- Format : .mp4 (recommandé) ou .avi\n- Noir et Blanc\n- Largeur maximale de 320 pixels",
         fg="red", justify="left", font=("Helvetica", 9, "bold"))
     warning_label.grid(row=row_ind, column=0, columnspan=3, sticky="w", pady=(5,10))
 

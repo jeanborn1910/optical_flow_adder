@@ -1,5 +1,5 @@
 # Jean-Eudes BORNERT - LTSI - 25/03/2026
-# Objectif    : Transformation de vidéos au format mkv ou avi optimisé pour l'optical flow
+# Objectif    : Transformation de vidéos au format mp4 standard ou mp4 optimisé pour l'optical flow
 # Fonction    : Interface graphique pour saisir les fichiers vidéo et choisir les traitements. 
 
 # --------------------------------------
@@ -25,7 +25,7 @@ def verifier_format(*args):
     if not chemins or not chemins[0]:
         cadre_date_heure.grid_remove()
         assemble_file.grid_remove()
-        mkv_file.config(state="normal")
+        mp4_file.config(state="normal")
         return
         
     contient_mpeg = any(c.lower().endswith(('.mpeg', '.mpg', '.mpe')) for c in chemins)
@@ -35,7 +35,7 @@ def verifier_format(*args):
             messagebox.showerror(
                 "Action impossible", 
                 "Il n'est pas possible de traiter plusieurs fichiers MPEG en même temps.\n\n"
-                "Veuillez convertir chaque fichier en mkv, puis les assembler."
+                "Veuillez convertir chaque fichier en mp4, puis les assembler."
             )
             root.after(10, lambda: video_var.set(""))
             return
@@ -45,7 +45,7 @@ def verifier_format(*args):
         bool_assemble_file.set(1)
         assemble_file.config(state="disabled")
         
-        mkv_file.config(state="normal")
+        mp4_file.config(state="normal")
         return
 
     assemble_file.grid_remove()
@@ -55,15 +55,15 @@ def verifier_format(*args):
     
     if nom_fichier.endswith(('.mpeg', '.mpg', '.mpe')):
         cadre_date_heure.grid(row=row_date_heure, column=0, columnspan=3, pady=10, sticky="w")
-        bool_mkv_file.set(1)
-        mkv_file.config(state="disabled")
-    elif nom_fichier.endswith(('.mkv')):
-        bool_mkv_file.set(0)
+        bool_mp4_file.set(1)
+        mp4_file.config(state="disabled")
+    elif nom_fichier.endswith(('.mp4')):
+        bool_mp4_file.set(0)
         cadre_date_heure.grid_remove()
-        mkv_file.config(state="disabled")
+        mp4_file.config(state="disabled")
     else:
         cadre_date_heure.grid_remove()
-        mkv_file.config(state="normal")
+        mp4_file.config(state="normal")
 
 def obtenir_date_formatee():
     date_sel = calendrier.get_date()
@@ -113,7 +113,7 @@ def extraire_date_creation(input_file):
         
     return None
 
-def run_combined_processing(video_paths_str, output_base_name, date_str, do_mkv, do_of):
+def run_combined_processing(video_paths_str, output_base_name, date_str, do_mp4, do_of):
     try:
         fichiers_entree = video_paths_str.split(';')
         video_p = Path(fichiers_entree[0])
@@ -143,42 +143,41 @@ def run_combined_processing(video_paths_str, output_base_name, date_str, do_mkv,
             base_name = f"{base_name}_assemble"
             set_progress(0)
 
-        if do_mkv:
-            log("Démarrage de la conversion mkv...")
-            out_mkv = base_name if output_base_name else f"{base_name}_converted"
+        if do_mp4:
+            log("Démarrage de la conversion MP4 de visionnage (optimisée)...")
+            out_mp4 = base_name if output_base_name else f"{base_name}_converted"
 
-            back_convert_video.convert_mpeg_to_mkv(
+            back_convert_video.convert_mpeg_to_mp4(
                 fichier_source, 
-                out_mkv, 
+                out_mp4, 
                 date_str, 
                 log, 
                 set_progress
             )
-            log("Conversion MKV terminée.")
-            nom_mkv_final = out_mkv if out_mkv.lower().endswith(".mkv") else f"{out_mkv}.mkv"
+            log("Conversion MP4 terminée.")
+            nom_mp4_final = out_mp4 if out_mp4.lower().endswith(".mp4") else f"{out_mp4}.mp4"
             
-            fichier_source = os.path.join(parent_dir, nom_mkv_final)
+            fichier_source = os.path.join(parent_dir, nom_mp4_final)
+            set_progress(0)
+            
+            fichier_source = os.path.join(parent_dir, nom_mp4_final)
             set_progress(0)
 
         if do_of:
-            log("Conversion de la vidéo en vu de l'optical flow...")
+            log("Conversion de la vidéo en vu du flot optique...")
             
-            if date_str:
-                suffixe_date = "_" + date_str.replace(" ", "_").replace(":", "-").replace("T", "_")
-                out_of_name = f"{base_name}{suffixe_date}_of.avi"
-            else:
-                out_of_name = f"{base_name}_of.avi"
-                
+            out_of_name = f"{base_name}_of.mp4"
             out_of_path = os.path.join(parent_dir, out_of_name)
             
             back_convert_video.convert_for_optical_flow(
                 fichier_source, 
                 out_of_path, 
+                date_str, 
                 log, 
                 set_progress,
                 largeur_cible=320
             )
-            log("Conversion au format AVI pour l'optical flow terminée.")
+            log("Conversion au format MP4 pour le flot optique terminée.")
         
         messagebox.showinfo("Succès", "Tous les traitements sont terminés.")
         set_progress(0)
@@ -192,7 +191,7 @@ def submit():
     video_paths_str = video_var.get()
     output_name = output_var.get()
     
-    do_mkv = bool_mkv_file.get()
+    do_mp4 = bool_mp4_file.get()
     do_of = bool_of_file.get()
 
     if not video_paths_str:
@@ -214,7 +213,7 @@ def submit():
             )
             return
 
-    if len(chemins) == 1 and not do_mkv and not do_of:
+    if len(chemins) == 1 and not do_mp4 and not do_of:
         messagebox.showerror("Erreur", "Sélectionnez au moins une conversion à réaliser.")
         return
 
@@ -225,7 +224,7 @@ def submit():
     progress["value"] = 0
     thread = threading.Thread(
         target=run_combined_processing,
-        args=(video_paths_str, output_name, date_iso, do_mkv, do_of)
+        args=(video_paths_str, output_name, date_iso, do_mp4, do_of)
     )
     thread.daemon = True
     thread.start()
@@ -234,7 +233,7 @@ def submit():
 # Fenêtre principale
 # --------------------------------------
 root = tk.Tk()
-root.title("Video converter for optical flow")
+root.title("Video converter for flot optique")
 chemin_image = back_convert_video.obtenir_chemin_ressource("video_logo.png", "images")
 try:
     img_tk = tk.PhotoImage(file=chemin_image)
@@ -245,7 +244,7 @@ except Exception:
 video_var = tk.StringVar()
 output_var = tk.StringVar()
 bool_assemble_file = tk.IntVar()
-bool_mkv_file = tk.IntVar()
+bool_mp4_file = tk.IntVar()
 bool_of_file = tk.IntVar()
 
 row_ind = 0
@@ -280,13 +279,13 @@ row_assemble = row_ind
 assemble_file = tk.Checkbutton(root, text="Assembler les fichiers vidéo en une longue vidéo", variable=bool_assemble_file)
 
 row_ind += 1
-mkv_file = tk.Checkbutton(root, text="Convertir le fichier en .mkv", variable=bool_mkv_file)
-mkv_file.grid(row=row_ind, column=0, columnspan=3, sticky="w", padx=5)
+mp4_file = tk.Checkbutton(root, text="Convertir le fichier en .mp4", variable=bool_mp4_file)
+mp4_file.grid(row=row_ind, column=0, columnspan=3, sticky="w", padx=5)
 
 row_ind += 1
 of_file = tk.Checkbutton(
     root, 
-    text="Convertir le fichier pour l'optical flow (attention, le fichier peut être volumineux,\n assurez-vous d'avoir le stockage nécessaire)", 
+    text="Convertir le fichier pour le flot optique (attention, le fichier peut être volumineux,\n assurez-vous d'avoir le stockage nécessaire)", 
     variable=bool_of_file,
     justify="left"
 )

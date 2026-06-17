@@ -18,25 +18,39 @@ import multiprocessing
 # --------------------------------------
 # Calcul d'optical flow
 # --------------------------------------
+
 def compute_flow_segment(video_path, start_frame, end_frame, queue):
     cap = cv2.VideoCapture(video_path)
     start_lecture = max(0, start_frame - 1)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, start_lecture)
     
-    segment_values = []
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start_lecture)
     ok, prev_frame = cap.read()
+    
     if not ok:
-        return f"Impossible de lire la vidéo {video_path}"
+        cap.release()
+        cap = cv2.VideoCapture(video_path)
+        for _ in range(start_lecture):
+            cap.grab()
+        ok, prev_frame = cap.read()
+        
+    nb_frames = end_frame - start_frame
+    segment_values = []
+    
+    if not ok:
+        cap.release()
+        for _ in range(nb_frames):
+            queue.put(1)
+        return [0.0] * nb_frames
     
     prev_gray = prev_frame[:, :, 0] if len(prev_frame.shape) == 3 else prev_frame
     
-    nb_frames = end_frame - start_frame
     for _ in range(nb_frames):
         ok, frame = cap.read()
         if not ok:
-            return f"Impossible de lire la vidéo {video_path}"
+            segment_values.append(0.0)
+            queue.put(1)
+            continue
             
-        # Extraction du canal gris (zéro calcul mathématique)
         gray = frame[:, :, 0] if len(frame.shape) == 3 else frame
         
         flow = cv2.calcOpticalFlowFarneback(
@@ -70,8 +84,8 @@ def process_edf(edf_path, video_path, output_name, log, set_progress):
     log("Vérification de la vidéo...")
 
     # Format
-    if not video_path.lower().endswith('.avi'):
-        msg = "Erreur : La vidéo fournie doit impérativement être au format .avi"
+    if not video_path.lower().endswith(('.mp4', '.avi')):
+        msg = "Erreur : La vidéo fournie doit impérativement être au format .mp4"
         log("ECHEC\n" + msg)
         return msg
     
@@ -125,6 +139,7 @@ def process_edf(edf_path, video_path, output_name, log, set_progress):
     # --------------------------------------
     
     # TODO : Voir si on ne fait pas plutôt en sorte de synchroniser les heures de debut des deux éléments. 
+    
     tolerance_duree = 1.0
     ecart_duree = abs(duration_eeg-duration_video)
     if ecart_duree > tolerance_duree:
