@@ -24,6 +24,8 @@ class ApplicationVWR(tk.Tk):
         # Variables Tkinter
         self.chemin_fichier = tk.StringVar()
         
+        self.nom_sortie = tk.StringVar()
+        
         self.creer_widgets()
 
     def creer_widgets(self):
@@ -37,6 +39,14 @@ class ApplicationVWR(tk.Tk):
         
         tk.Entry(frame_input, textvariable=self.chemin_fichier, width=70).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         tk.Button(frame_input, text="Parcourir...", command=self.choisir_fichier).pack(side=tk.RIGHT)
+
+        tk.Label(frame_haut, text="Nom de la vidéo finale (optionnel) :", font=("Arial", 10, "bold")).pack(anchor="w", pady=(10, 0))
+        
+        frame_sortie = tk.Frame(frame_haut)
+        frame_sortie.pack(fill=tk.X, pady=5)
+        
+        tk.Entry(frame_sortie, textvariable=self.nom_sortie, width=50).pack(side=tk.LEFT)
+        tk.Label(frame_sortie, text="(laissez vide pour utiliser le nom du fichier .vwr)", font=("Arial", 10, "italic"), fg="gray").pack(side=tk.LEFT, padx=10)
 
         # --- Message d'avertissement ---
         texte_attention = (
@@ -97,17 +107,24 @@ class ApplicationVWR(tk.Tk):
         self.console.delete(1.0, tk.END)
         self.console.config(state=tk.DISABLED)
 
+        nom_perso = self.nom_sortie.get().strip()
+        if nom_perso: # Si l'utilisateur a tapé quelque chose
+            if not nom_perso.lower().endswith('.mp4'):
+                nom_perso += '.mp4' # On sécurise l'extension
+        else:
+            nom_perso = None
+
         # Lancer le script dans un thread séparé
-        thread = threading.Thread(target=self.executer_backend, args=(chemin,))
+        thread = threading.Thread(target=self.executer_backend, args=(chemin, nom_perso))
         thread.daemon = True 
         thread.start()
 
-    def executer_backend(self, chemin):
+    def executer_backend(self, chemin, nom_perso):
         debut_chrono = time.time()
         succes = False
         
         try:
-            succes = analyser_videos_vwr(chemin, log_callback=self.ecrire_log)
+            succes = analyser_videos_vwr(chemin, fichier_sortie=nom_perso, log_callback=self.ecrire_log)
         except Exception as e:
             self.ecrire_log(f"\nErreur inattendue : {e}")
             succes = False

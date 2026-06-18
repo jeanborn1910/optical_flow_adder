@@ -160,7 +160,7 @@ def verifier_presence_ffmpeg(chemin_ffmpeg):
         
     return True
 
-def analyser_videos_vwr(chemin_vwr, fichier_sortie="video_complete.mp4", log_callback=None):
+def analyser_videos_vwr(chemin_vwr, fichier_sortie=None, log_callback=None):
 
     if log_callback:
         set_log_callback(log_callback)
@@ -177,6 +177,10 @@ def analyser_videos_vwr(chemin_vwr, fichier_sortie="video_complete.mp4", log_cal
 
     dossier_vwr = os.path.dirname(chemin_vwr)
     nom_base_vwr = os.path.splitext(os.path.basename(chemin_vwr))[0]
+    
+    if fichier_sortie is None:
+        fichier_sortie = f"{nom_base_vwr}.mp4"
+        
     dossier_tmp = os.path.join(dossier_vwr, "_tmp_assembly")
     os.makedirs(dossier_tmp, exist_ok=True)
 
