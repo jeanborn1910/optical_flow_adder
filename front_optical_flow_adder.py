@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     row_ind+=1
     warning_label = tk.Label(root, 
-        text="ATTENTION : la vidéo doit être optimisée en amont :\n- Format : .mp4 (recommandé) ou .avi\n- Noir et Blanc\n- Largeur maximale de 320 pixels",
+        text="ATTENTION : la vidéo doit être optimisée en amont :\n- Format : .mp4 pour le flot optique\n- Noir et Blanc\n- Largeur maximale de 320 pixels",
         fg="red", justify="left", font=("Helvetica", 9, "bold"))
     warning_label.grid(row=row_ind, column=0, columnspan=3, sticky="w", pady=(5,10))
 
