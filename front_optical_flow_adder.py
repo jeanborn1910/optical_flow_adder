@@ -48,10 +48,10 @@ def _update_progress(value):
 def set_progress(value):
     root.after(0,lambda:_update_progress(value))
 
-def run_processing(edf_path, video_path, output_name):
+def run_processing(edf_path, video_path, output_name, signal_label):
     try:
         deb = time.time()
-        result = back_optical_flow_adder.process_edf(edf_path, video_path, output_name, log, set_progress)
+        result = back_optical_flow_adder.process_edf(edf_path, video_path, output_name, signal_label, log, set_progress)
         
         temps_total = round(time.time() - deb, 2)
         log(f"Temps d'exécution total : {temps_total} secondes")
@@ -70,6 +70,10 @@ def submit():
     edf_path = edf_var.get()
     video_path = video_var.get()
     output_name = output_var.get()
+    
+    signal_label = label_var.get().strip()
+    if not signal_label:
+        signal_label = "flot optique"
     
     formats_video = [".mp4"]
 
@@ -112,7 +116,7 @@ def submit():
     
     progress["value"] = 0
 
-    thread = threading.Thread(target=run_processing, args=(str(edf_path), str(video_path), str(output_name)))
+    thread = threading.Thread(target=run_processing, args=(str(edf_path), str(video_path), str(output_name), signal_label))
     thread.start()
 
 # --------------------------------------
@@ -133,6 +137,7 @@ if __name__ == "__main__":
     edf_var = tk.StringVar()
     video_var = tk.StringVar()
     output_var = tk.StringVar()
+    label_var = tk.StringVar()
 
     row_ind = 0
     tk.Label(root, text="Fichier EDF (obligatoire) : ").grid(row=row_ind, column=0, sticky="w")
@@ -153,6 +158,13 @@ if __name__ == "__main__":
 
     row_ind+=1
     tk.Label(root, text="** Si vous ne précisez rien, le fichier sera localisé au même endroit. Attention à l'écrasement.", justify="left").grid(row=row_ind, column=0, columnspan=3, sticky="w", pady=(0,10))
+
+    row_ind+=1
+    tk.Label(root, text="Nom du tracé EDF (optionnel***) :").grid(row=row_ind, column=0, sticky="w")
+    tk.Entry(root, textvariable=label_var, width=50).grid(row=row_ind, column=1)
+
+    row_ind+=1
+    tk.Label(root, text="(*** Si vous ne précisez rien, la ligne s'appellera 'flot optique')", justify="left").grid(row=row_ind, column=0, columnspan=3, sticky="w", pady=(0,10))
 
     row_ind+=1
     warning_label = tk.Label(root, 

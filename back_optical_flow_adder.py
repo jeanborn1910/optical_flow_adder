@@ -69,7 +69,7 @@ def compute_flow_segment(video_path, start_frame, end_frame, queue):
 # --------------------------------------
 # Fonction Principale
 # --------------------------------------
-def process_edf(edf_path, video_path, output_name, log, set_progress):
+def process_edf(edf_path, video_path, output_name, signal_label, log, set_progress):
     # -------------------------------------- 
     # Paramètres 
     # --------------------------------------
@@ -214,7 +214,7 @@ def process_edf(edf_path, video_path, output_name, log, set_progress):
     # Ajout du nouveau canal au fichier .edf
     # --------------------------------------
     new_header = signal_headers[0].copy()
-    new_header["label"] = "Optical flow"
+    new_header["label"] = signal_label
     signals.append(new_signal)
     signal_headers.append(new_header)
 
